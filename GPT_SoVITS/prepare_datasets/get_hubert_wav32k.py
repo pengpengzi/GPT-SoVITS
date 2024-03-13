@@ -19,16 +19,7 @@ now_dir = os.getcwd()
 sys.path.append(now_dir)
 from my_utils import load_audio
 
-# from config import cnhubert_base_path
-# cnhubert.cnhubert_base_path=cnhubert_base_path
-# inp_text=sys.argv[1]
-# inp_wav_dir=sys.argv[2]
-# exp_name=sys.argv[3]
-# i_part=sys.argv[4]
-# all_parts=sys.argv[5]
-# os.environ["CUDA_VISIBLE_DEVICES"]=sys.argv[6]
-# cnhubert.cnhubert_base_path=sys.argv[7]
-# opt_dir="/data/docker/liujing04/gpt-vits/fine_tune_dataset/%s"%exp_name
+
 
 from time import time as ttime
 import shutil
