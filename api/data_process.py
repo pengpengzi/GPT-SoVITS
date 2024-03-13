@@ -14,6 +14,8 @@ from time import time as ttime
 
 
 def preprocess_text_and_extract_features(project_id):
+    os.chdir('/home/www/GPT-SoVITS/')
+    print("当前工作目录：", os.getcwd())
     inp_wav_dir = f"./work_dir/train_audio/{project_id}"
     inp_text = f"./work_dir/filelists/{project_id}.list"
     exp_name = project_id
@@ -21,7 +23,8 @@ def preprocess_text_and_extract_features(project_id):
     all_parts = 4
     os.environ["CUDA_VISIBLE_DEVICES"] = '1'
     opt_dir = f"./work_dir/text/{project_id}"
-    bert_pretrained_dir = 'GPT-SoVITS/pretrained_models/chinese-roberta-wwm-ext-large'
+    bert_pretrained_dir = './GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/'
+
     is_half = 'Ture'
     txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
 
