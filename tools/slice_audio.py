@@ -44,5 +44,5 @@ def slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_
             print(inp_path,"->fail->",traceback.format_exc())
     return "执行完毕，请检查输出文件"
 
-print(slice(*sys.argv[1:]))
+
 

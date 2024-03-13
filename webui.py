@@ -400,7 +400,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
                 }
             )
             os.environ.update(config)
-            cmd = '"%s" GPT_SoVITS/prepare_datasets/1-get-text.py'%python_exec
+            cmd = '"%s" GPT_SoVITS/prepare_datasets/get_text.py'%python_exec
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1a.append(p)
@@ -457,7 +457,7 @@ def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
                 }
             )
             os.environ.update(config)
-            cmd = '"%s" GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py'%python_exec
+            cmd = '"%s" GPT_SoVITS/prepare_datasets/get_hubert_wav32k.py'%python_exec
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1b.append(p)
@@ -505,7 +505,7 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
                 }
             )
             os.environ.update(config)
-            cmd = '"%s" GPT_SoVITS/prepare_datasets/3-get-semantic.py'%python_exec
+            cmd = '"%s" GPT_SoVITS/prepare_datasets/get_semantic.py'%python_exec
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1c.append(p)
@@ -567,7 +567,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                         }
                     )
                     os.environ.update(config)
-                    cmd = '"%s" GPT_SoVITS/prepare_datasets/1-get-text.py'%python_exec
+                    cmd = '"%s" GPT_SoVITS/prepare_datasets/get_text.py'%python_exec
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
@@ -604,7 +604,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     }
                 )
                 os.environ.update(config)
-                cmd = '"%s" GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py'%python_exec
+                cmd = '"%s" GPT_SoVITS/prepare_datasets/get_hubert_wav32k.py'%python_exec
                 print(cmd)
                 p = Popen(cmd, shell=True)
                 ps1abc.append(p)
@@ -633,7 +633,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                         }
                     )
                     os.environ.update(config)
-                    cmd = '"%s" GPT_SoVITS/prepare_datasets/3-get-semantic.py'%python_exec
+                    cmd = '"%s" GPT_SoVITS/prepare_datasets/get_semantic.py'%python_exec
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
