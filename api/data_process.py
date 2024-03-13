@@ -2,6 +2,8 @@
 
 import os
 import sys
+from GPT_SoVITS import utils
+from GPT_SoVITS.module.models import SynthesizerTrn
 import numpy as np
 from GPT_SoVITS.feature_extractor import cnhubert
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -216,5 +218,64 @@ def extract_features(project_id):
 
 
 
-project_id = 'zsp'
-extract_features(project_id)
+# 语义token提取
+def process_semantic_embeddings(project_id):
+    os.chdir('/home/www/GPT-SoVITS/')
+    inp_text = f"./work_dir/filelists/{project_id}.list"
+    i_part = "0"
+    all_parts = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+    opt_dir = f"./work_dir/1_data_process/{project_id}"
+    is_half = True
+    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+    pretrained_s2G = "./GPT_SoVITS/pretrained_models/s2G488k.pth"
+    s2config_path = "./GPT_SoVITS/configs/s2.json"
+
+    hubert_dir = f"{opt_dir}/4-cnhubert"
+    semantic_path = f"{opt_dir}/6-name2semantic-{i_part}.tsv"
+
+    if not os.path.exists(semantic_path):
+        os.makedirs(opt_dir, exist_ok=True)
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        hps = utils.get_hparams_from_file(s2config_path)
+        vq_model = SynthesizerTrn(
+            hps.data.filter_length // 2 + 1,
+            hps.train.segment_size // hps.data.hop_length,
+            n_speakers=hps.data.n_speakers,
+            **hps.model
+        )
+        vq_model = vq_model.half().to(device) if is_half else vq_model.to(device)
+        vq_model.eval()
+        print(
+            vq_model.load_state_dict(
+                torch.load(pretrained_s2G, map_location="cpu")["weight"], strict=False
+            )
+        )
+
+        def name2go(wav_name, lines):
+            hubert_path = f"{hubert_dir}/{wav_name}.pt"
+            if not os.path.exists(hubert_path):
+                return
+            ssl_content = torch.load(hubert_path, map_location="cpu")
+            ssl_content = ssl_content.half().to(device) if is_half else ssl_content.to(device)
+            codes = vq_model.extract_latent(ssl_content)
+            semantic = " ".join(str(i) for i in codes[0, 0, :].tolist())
+            lines.append(f"{wav_name}\t{semantic}")
+
+        with open(inp_text, "r", encoding="utf8") as f:
+            lines = f.read().strip("\n").split("\n")
+
+        lines1 = []
+        for line in lines[int(i_part):: int(all_parts)]:
+            try:
+                wav_name, spk_name, language, text = line.split("|")
+                wav_name = os.path.basename(wav_name)
+                name2go(wav_name, lines1)
+            except:
+                print(line, traceback.format_exc())
+
+        with open(semantic_path, "w", encoding="utf8") as f:
+            f.write("\n".join(lines1))
+# project_id = 'zsp'
+# process_semantic_embeddings(project_id)
