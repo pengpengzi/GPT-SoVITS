@@ -26,13 +26,14 @@ def preprocess_text_and_extract_features(project_id):
     i_part = 0
     all_parts = 4
     os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-    opt_dir = f"./work_dir/text/{project_id}"
+    opt_dir = os.path.join("./work_dir/1_data_process", exp_name)
+    # opt_dir = f"./work_dir/text/{project_id}"
     bert_pretrained_dir = './GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/'
 
     is_half = True
-    txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
+    txt_path = "{}/2-name2text.txt".format(opt_dir)
 
-    opt_dir = os.path.join("./work_dir/1_data_process", exp_name)
+
 
     def my_save(fea, path):
         dir = os.path.dirname(path)
@@ -41,7 +42,7 @@ def preprocess_text_and_extract_features(project_id):
         torch.save(fea, tmp_path)
         shutil.move(tmp_path, os.path.join(dir, name))
 
-    txt_path = "{}/2-name2text-{}.txt".format(opt_dir, i_part)
+
     if not os.path.exists(txt_path):
         bert_dir = "{}/3-bert".format(opt_dir)
         os.makedirs(opt_dir, exist_ok=True)
@@ -118,7 +119,6 @@ def preprocess_text_and_extract_features(project_id):
 def extract_features(project_id):
     inp_text = f"./work_dir/filelists/{project_id}.list"
     inp_wav_dir = f"./work_dir/train_audio/{project_id}"
-    exp_name = project_id
     i_part = "0"
     all_parts = "1"
     _CUDA_VISIBLE_DEVICES = "0"
@@ -232,7 +232,7 @@ def process_semantic_embeddings(project_id):
     s2config_path = "./GPT_SoVITS/configs/s2.json"
 
     hubert_dir = f"{opt_dir}/4-cnhubert"
-    semantic_path = f"{opt_dir}/6-name2semantic-{i_part}.tsv"
+    semantic_path = f"{opt_dir}/6-name2semantic.tsv"
 
     if not os.path.exists(semantic_path):
         os.makedirs(opt_dir, exist_ok=True)

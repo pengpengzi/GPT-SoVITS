@@ -1,7 +1,7 @@
 import json
 import locale
 import os
-
+os.chdir('/home/www/GPT-SoVITS/')
 
 def load_language_list(language):
     with open(f"./i18n/locale/{language}.json", "r", encoding="utf-8") as f:

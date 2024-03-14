@@ -66,12 +66,22 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, skip_optimizer=False
 
 from time import time as ttime
 import shutil
-def my_save(fea,path):#####fix issue: torch.save doesn't support chinese path
-    dir=os.path.dirname(path)
-    name=os.path.basename(path)
-    tmp_path="%s.pth"%(ttime())
-    torch.save(fea,tmp_path)
-    shutil.move(tmp_path,"%s/%s"%(dir,name))
+# def my_save(fea,path):
+#     dir=os.path.dirname(path)
+#     name=os.path.basename(path)
+#     tmp_path="%s.pth"%(ttime())
+#     torch.save(fea,tmp_path)
+#     shutil.move(tmp_path,"%s/%s"%(dir,name))
+
+def my_save(fea, path):
+    dir = os.path.dirname(path)
+    name = os.path.basename(path)
+    tmp_path = "%s.pth" % (ttime())
+    if not os.path.exists(dir):
+        os.makedirs(dir, exist_ok=True)
+    torch.save(fea, tmp_path)
+    shutil.move(tmp_path, os.path.join(dir, name))
+
 
 def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path):
     logger.info(
@@ -115,10 +125,13 @@ def summarize(
 
 
 def latest_checkpoint_path(dir_path, regex="G_*.pth"):
+    print(f' 预训练模型加载路径：F{dir_path, regex}')
     f_list = glob.glob(os.path.join(dir_path, regex))
+
     f_list.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
+
     x = f_list[-1]
-    print(x)
+
     return x
 
 
@@ -191,12 +204,13 @@ def load_filepaths_and_text(filename, split="|"):
 
 
 def get_hparams(init=True, stage=1):
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c",
         "--config",
         type=str,
-        default="./configs/s2.json",
+        default= "/home/www/GPT-SoVITS/GPT_SoVITS/configs/s2.json",
         help="JSON file for configuration",
     )
     parser.add_argument(
@@ -210,9 +224,6 @@ def get_hparams(init=True, stage=1):
         default=None,
         help="resume step",
     )
-    # parser.add_argument('-e', '--exp_dir', type=str, required=False,default=None,help='experiment directory')
-    # parser.add_argument('-g', '--pretrained_s2G', type=str, required=False,default=None,help='pretrained sovits gererator weights')
-    # parser.add_argument('-d', '--pretrained_s2D', type=str, required=False,default=None,help='pretrained sovits discriminator weights')
 
     args = parser.parse_args()
 
@@ -225,6 +236,7 @@ def get_hparams(init=True, stage=1):
     hparams.pretrain = args.pretrain
     hparams.resume_step = args.resume_step
     # hparams.data.exp_dir = args.exp_dir
+
     if stage == 1:
         model_dir = hparams.s1_ckpt_dir
     else:

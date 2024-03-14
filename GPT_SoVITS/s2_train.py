@@ -1,7 +1,7 @@
 import utils, os
 
 hps = utils.get_hparams(stage=2)
-os.environ["CUDA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
@@ -212,6 +212,7 @@ def run(rank, n_gpus, hps):
         epoch_str = 1
         global_step = 0
         if hps.train.pretrained_s2G != "":
+            print(f'pretrained_s2G路径：{hps.train.pretrained_s2G}')
             if rank == 0:
                 logger.info("loaded pretrained %s" % hps.train.pretrained_s2G)
             print(

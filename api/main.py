@@ -9,7 +9,8 @@ from tools.slice_audio import slice
 from UVR5 import uvr
 # 导入打标签重采样模块
 from labou_train_data import *
-# 文本获取模块
+# 数据预处理模块
+from data_process import *
 
 
 app = FastAPI()
@@ -72,20 +73,22 @@ async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
     resample_audio(in_dir, temp_out_dir, out_dir)
     print('数据预处理（打标签与重采样）已经完成')
     # 所有文件处理完毕，返回成功信息
-    return {"detail": "sucess"}
+    return {"detail_1": "sucess"}
 
-@app.post("/train/{project_id}")
-async def upload_audio(project_id: str):
-    inp_wav_dir = f"./work_dir/train_audio/{project_id}"
-    inp_text = f"./work_dir//filelists/{project_id}.list"
-    exp_name = project_id
-    i_part = 0
-    all_parts = 4
-    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-    opt_dir = f"./work_dir/text/{project_id}"
-    bert_pretrained_dir = 'GPT-SoVITS/pretrained_models/chinese-roberta-wwm-ext-large'
-    is_half = 'Ture'
-    txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
+@app.post("/data_process/{project_id}")
+async def data_process(project_id: str):
+    preprocess_text_and_extract_features(project_id)
+    print('完成文本获取')
+    extract_features(project_id)
+    print('完成ssl提取')
+    process_semantic_embeddings(project_id)
+    print('完成语义token提取')
+    return {"detail_2": "sucess"}
+
+# @app.post("/train/{project_id}")
+# async def train(project_id: str):
+#     print()
+
 
 
 
