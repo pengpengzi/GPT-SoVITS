@@ -11,6 +11,8 @@ from UVR5 import uvr
 from labou_train_data import *
 # 数据预处理模块
 from data_process import *
+# 训练模块
+from train import *
 
 
 app = FastAPI()
@@ -85,11 +87,24 @@ async def data_process(project_id: str):
     print('完成语义token提取')
     return {"detail_2": "sucess"}
 
-# @app.post("/train/{project_id}")
-# async def train(project_id: str):
-#     print()
+@app.post("/train/{project_id}")
+async def train(project_id: str):
+    main(project_id)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c",
+        "--config_file",
+        type=str,
+        default="./GPT_SoVITS/configs/tmp_s1.yaml",
+        help="path of config file",
+    )
+    args = parser.parse_args()
+    logging.info(str(args))
+    project_id='hxj'
+    main_GPT(project_id,args)
 
-
+# @app.post("/predict/{project_id}")
+# async def predict(project_id: str):
 
 
 
