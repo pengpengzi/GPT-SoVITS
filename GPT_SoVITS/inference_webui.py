@@ -614,9 +614,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         gr.Markdown(value=i18n("后续将支持转音素、手工修改音素、语音合成分步执行。"))
 
 app.queue(concurrency_count=511, max_size=1022).launch(
-    server_name="0.0.0.0",
+    server_name="127.0.0.1",
     inbrowser=True,
     share=is_share,
-    server_port=infer_ttswebui,
+    server_port=7860,
     quiet=True,
 )

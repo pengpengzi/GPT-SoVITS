@@ -60,21 +60,21 @@ async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
     output_info = uvr(opt_root, save_root_vocal, save_root_ins)
     for info in output_info:
         print(info)
-    # 打标签+重采样
-    character_name = project_id
-    chinese_dir = save_root_vocal
-    parent_dir = f"./work_dir/train_audio/{project_id}"
-    file_number = process_directory(chinese_dir, character_name, "ZH", 0, parent_dir, project_id)
-
-    # 设置重采样目录路径
-    in_dir = f"./work_dir/train_audio/{project_id}"  # 音频文件的当前位置
-    temp_out_dir = f"./work_dir/train_audio/temp"  # 临时存储重采样后的文件
-    out_dir = f"./work_dir/train_audio/{project_id}"
-
-    # 调用重采样函数
-    resample_audio(in_dir, temp_out_dir, out_dir)
-    print('数据预处理（打标签与重采样）已经完成')
-    # 所有文件处理完毕，返回成功信息
+    # # 打标签+重采样
+    # character_name = project_id
+    # chinese_dir = save_root_vocal
+    # parent_dir = f"./work_dir/train_audio/{project_id}"
+    # file_number = process_directory(chinese_dir, character_name, "ZH", 0, parent_dir, project_id)
+    #
+    # # 设置重采样目录路径
+    # in_dir = f"./work_dir/train_audio/{project_id}"  # 音频文件的当前位置
+    # temp_out_dir = f"./work_dir/train_audio/temp"  # 临时存储重采样后的文件
+    # out_dir = f"./work_dir/train_audio/{project_id}"
+    #
+    # # 调用重采样函数
+    # resample_audio(in_dir, temp_out_dir, out_dir)
+    # print('数据预处理（打标签与重采样）已经完成')
+    # # 所有文件处理完毕，返回成功信息
     return {"detail_1": "sucess"}
 
 @app.post("/data_process/{project_id}")

@@ -24,10 +24,8 @@ def preprocess_text_and_extract_features(project_id):
     inp_text = f"./work_dir/filelists/{project_id}.list"
     exp_name = project_id
     i_part = 0
-    all_parts = 4
     os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-    opt_dir = os.path.join("./work_dir/1_data_process", exp_name)
-    # opt_dir = f"./work_dir/text/{project_id}"
+    opt_dir = os.path.join("./work_dir/data_process", exp_name)
     bert_pretrained_dir = './GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/'
 
     is_half = True
@@ -122,7 +120,7 @@ def extract_features(project_id):
     i_part = "0"
     all_parts = "1"
     _CUDA_VISIBLE_DEVICES = "0"
-    opt_dir = f"./work_dir/1_data_process/{project_id}"
+    opt_dir = f"./work_dir/data_process/{project_id}"
     cnhubert_base_dir = "./GPT_SoVITS/pretrained_models/chinese-hubert-base/"
     is_half_str = "True"
     os.environ["CUDA_VISIBLE_DEVICES"] = '1'
@@ -225,7 +223,7 @@ def process_semantic_embeddings(project_id):
     i_part = "0"
     all_parts = "1"
     os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-    opt_dir = f"./work_dir/1_data_process/{project_id}"
+    opt_dir = f"./work_dir/data_process/{project_id}"
     is_half = True
     os.environ["CUDA_VISIBLE_DEVICES"] = '1'
     pretrained_s2G = "./GPT_SoVITS/pretrained_models/s2G488k.pth"
