@@ -397,14 +397,19 @@ def cmb_spectrogram_to_wave(spec_m, mp, extra_bins_h=None, extra_bins=None):
             sr = mp.param["band"][d + 1]["sr"]
             if d == 1:  # lower
                 spec_s = fft_lp_filter(spec_s, bp["lpf_start"], bp["lpf_stop"])
-                wave = librosa.resample(
-                    spectrogram_to_wave(
+                A = spectrogram_to_wave(
                         spec_s,
                         bp["hl"],
                         mp.param["mid_side"],
                         mp.param["mid_side_b2"],
                         mp.param["reverse"],
-                    ),
+                    )
+                if not np.all(np.isfinite(A)):
+                    # 将非有限数值替换为零或其他有限数值
+                    A = np.nan_to_num(A)
+
+                wave = librosa.resample(
+                    A,
                     orig_sr   = bp["sr"],
                     target_sr = sr,
                     res_type  = "sinc_fastest",
