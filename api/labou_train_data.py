@@ -12,6 +12,20 @@ import shutil
 '''
 labou1内容 打标签
 '''
+def check_filelist(list_file_path):
+    valid_lines = []
+    with open(list_file_path, 'r', encoding='utf-8') as file:
+        for line in file:
+            # 拆分行来获取音频路径和文本内容
+            parts = line.strip().split('|')
+            # 检查是否有四个部分（音频路径、名称、语言代码、文本）
+            if len(parts) == 4 and parts[3].strip():
+                valid_lines.append(line)
+    if valid_lines:
+        with open(list_file_path, 'w', encoding='utf-8') as file:
+            file.writelines(valid_lines)
+    print('已完成.list文件检查')
+
 
 
 def get_inference_pipeline(lang_code):
@@ -21,6 +35,7 @@ def get_inference_pipeline(lang_code):
             # # 上个版本
             # model='damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch'
 
+            # 带标点的文本打标签
             task=Tasks.auto_speech_recognition,
             model='iic/speech_paraformer-large-contextual_asr_nat-zh-cn-16k-common-vocab8404', model_revision="v2.0.4",
             vad_model='iic/speech_fsmn_vad_zh-cn-16k-common-pytorch', vad_model_revision="v2.0.4",
@@ -95,17 +110,17 @@ def process_directory(source_dir, character_name, lang_code, start_number, paren
 
                 # 创建文件夹（如果它不存在）
                 os.makedirs(directory, exist_ok=True)
-
-                # 创建文件路径
                 output_file = f"{directory}/{project_id}.list"
-
-                # 保存处理后的信息
                 line = f"{new_wav_file_path}|{character_name}|{lang_code}|{text}\n"
-                with open(output_file, 'a', encoding='utf-8') as f:
-                    f.write(line)
+                if text.strip():
+                    with open(output_file, 'a', encoding='utf-8') as f:
+                        f.write(line)
+                    file_number += 1
+                    print(f"Processed: {line}")
+                else:
+                    print(f"检测到空文本语音：{new_wav_file_path}，不予写入")
 
-                file_number += 1
-                print(f"Processed: {line}")
+
 
     return file_number
 

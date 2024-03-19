@@ -1,7 +1,7 @@
 import utils, os
 
 hps = utils.get_hparams(stage=2)
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
@@ -82,7 +82,7 @@ def run(rank, n_gpus, hps):
     if torch.cuda.is_available():
         torch.cuda.set_device(rank)
 
-    train_dataset = TextAudioSpeakerLoader(hps.data)  ########
+    train_dataset = TextAudioSpeakerLoader(hps.data)
     train_sampler = DistributedBucketSampler(
         train_dataset,
         hps.train.batch_size,

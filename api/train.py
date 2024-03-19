@@ -7,6 +7,7 @@ import torch.multiprocessing as mp
 from pathlib import Path
 import logging
 import argparse
+
 import torch, platform
 from pytorch_lightning import seed_everything
 from pytorch_lightning import Trainer
@@ -24,6 +25,7 @@ from GPT_SoVITS.s1_train import my_model_ckpt
 
 
 
+
 # SoVITS训练
 def main(project_id):
     """Assume Single Node Multi GPUs Training Only"""
@@ -31,12 +33,14 @@ def main(project_id):
 
     if torch.backends.mps.is_available():
         n_gpus = 1
+        print(f"使用GPU数量： {n_gpus}")
     else:
         n_gpus = torch.cuda.device_count()
 
+
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = str(randint(20000, 55555))
-    my_exp_dir = f"./work_dir/train/{project_id}"
+    my_exp_dir = f"./work_dir/data_process/{project_id}"
     pretrained_s2G= f"./GPT_SoVITS/pretrained_models/s2G488k.pth"
     pretrained_s2D = f"./GPT_SoVITS/pretrained_models/s2D488k.pth"
     save_every_epoch = 10
@@ -44,9 +48,7 @@ def main(project_id):
     if_save_every_weights = True
     save_weight_dir = Path(f"./work_dir/train/{project_id}/logs2_weight")
     save_weight_dir.mkdir(parents=True, exist_ok=True)
-
     name = project_id
-
     hps['data']['exp_dir'] = my_exp_dir
     hps['train']['pretrained_s2G'] = pretrained_s2G
     hps['train']['pretrained_s2D'] = pretrained_s2D
@@ -55,8 +57,6 @@ def main(project_id):
     hps['train']['if_save_every_weights'] = if_save_every_weights
     hps['save_weight_dir'] = save_weight_dir
     hps['name']= name
-
-    print(hps)
 
     mp.spawn(
         run,
@@ -68,17 +68,28 @@ def main(project_id):
     )
 
 # GPT训练
-def main_GPT(project_id,args):
+
+
+
+def main_GPT(project_id):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c",
+        "--config_file",
+        type=str,
+        default="./GPT_SoVITS/configs/tmp_s1.yaml",
+        help="path of config file",
+    )
+    args = parser.parse_args()
+    logging.info(str(args))
     config = load_yaml_config(args.config_file)
     config['output_dir'] = f"./work_dir/train/{project_id}/log_s1"
     config['train_semantic_path'] = f"./work_dir/data_process/{project_id}/6-name2semantic.tsv"
     config['train_phoneme_path'] = f"./work_dir/data_process/{project_id}/2-name2text.txt"
     output_dir = Path(f"./work_dir/train/{project_id}/log_s1")
     output_dir.mkdir(parents=True, exist_ok=True)
-
     ckpt_dir = output_dir / "ckpt"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
-
     seed_everything(config["train"]["seed"], workers=True)
     ckpt_callback: ModelCheckpoint = my_model_ckpt(
         config=config,
@@ -94,7 +105,7 @@ def main_GPT(project_id,args):
         dirpath=ckpt_dir,
     )
     logger = TensorBoardLogger(name=output_dir.stem, save_dir=output_dir)
-    os.environ["MASTER_ADDR"]="localhost"
+    # os.environ["MASTER_ADDR"]="localhost"
     trainer: Trainer = Trainer(
         max_epochs=config["train"]["epochs"],
         accelerator="gpu",
@@ -124,7 +135,6 @@ def main_GPT(project_id,args):
         # dev_semantic_path=args.dev_semantic_path,
         # dev_phoneme_path=args.dev_phoneme_path
     )
-
     try:
         # 使用正则表达式匹配文件名中的数字部分，并按数字大小进行排序
         newest_ckpt_name = get_newest_ckpt(os.listdir(ckpt_dir))
@@ -134,4 +144,8 @@ def main_GPT(project_id,args):
     print("ckpt_path:", ckpt_path)
     trainer.fit(model, data_module, ckpt_path=ckpt_path)
 
+
+# if __name__ == '__main__':
+#     project_id = 'hxj'
+#     main_GPT(project_id)
 

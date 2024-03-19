@@ -1,8 +1,9 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+import argparse
+import logging
 from typing import List
+from fastapi import UploadFile, File, HTTPException
+from fastapi import FastAPI, BackgroundTasks
 from pathlib import Path
-import torch
-from transformers import AutoModelForMaskedLM, AutoTokenizer
 # 导入音频切割模块
 from tools.slice_audio import slice
 # 导入声音降噪模块
@@ -12,7 +13,7 @@ from labou_train_data import *
 # 数据预处理模块
 from data_process import *
 # 训练模块
-from train import *
+from train import main,main_GPT
 
 
 app = FastAPI()
@@ -87,29 +88,55 @@ async def data_process(project_id: str):
     print('完成语义token提取')
     return {"detail_2": "sucess"}
 
+def train_two_model(project_id):
+    # main(project_id)
+    main_GPT(project_id)
+
+
 @app.post("/train/{project_id}")
-async def train(project_id: str):
-    main(project_id)
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-c",
-        "--config_file",
-        type=str,
-        default="./GPT_SoVITS/configs/tmp_s1.yaml",
-        help="path of config file",
-    )
-    args = parser.parse_args()
-    logging.info(str(args))
-    project_id='hxj'
-    main_GPT(project_id,args)
+async def train(project_id: str,background_tasks: BackgroundTasks):
+    background_tasks.add_task(train_two_model, project_id)
+    return {"message": "Training started in the background"}
 
+
+#
 # @app.post("/predict/{project_id}")
-# async def predict(project_id: str):
+# async def predict(project_id: str,files_text,target_text, file: List[UploadFile] = File(...)):
+#     target_directory = f'./work_dir/predict/{project_id}/reference_audio/'
+#     default_language = "zh"
+#     text_language = "zh"
+#     # 判断音频长度，符合要求上传，不符报错
+#     file_bytes = io.BytesIO(await file.read())
+#     try:
+#         audio = AudioSegment.from_file(file_bytes)
+#         audio_length_ms = len(audio)
+#         audio_length_seconds = audio_length_ms / 1000
+#         if 3 < audio_length_seconds < 10:
+#             try:
+#                 file_location = target_directory / file.filename
+#                 with file_location.open("wb") as buffer:
+#                     shutil.copyfileobj(file.file, buffer)
+#
+#             except Exception as e:
+#                 raise HTTPException(status_code=500, detail="错误.请检查文件路径是否正确") from e
+#             finally:
+#                 file.file.close()
+#                 print(f'文件已经放入指定位置：{target_directory}')
+#
+#         else:
+#             raise HTTPException(status_code=400, detail="音频长度错误：上传音频长度应为3S-10S")
+#
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail="无法解析音频文件，请确定格式为MP3或wav")
+#
+#
+#     handle(file_location, files_text, default_language, target_text, text_language)
+#
+#
+#
 
 
-
-
-# 如果你需要运行这个app，请取消下面的注释并安装uvicorn
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=7860)

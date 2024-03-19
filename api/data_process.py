@@ -124,6 +124,7 @@ def extract_features(project_id):
     cnhubert_base_dir = "./GPT_SoVITS/pretrained_models/chinese-hubert-base/"
     is_half_str = "True"
     os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+    os.environ["TOKENIZERS_PARALLELISM"] = 'false'
     cnhubert.cnhubert_base_path = cnhubert_base_dir
     is_half = eval(is_half_str)
 

@@ -32,6 +32,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.path2 = "%s/2-name2text.txt" % exp_dir
         self.path4 = "%s/4-cnhubert" % exp_dir
         self.path5 = "%s/5-wav32k" % exp_dir
+        print("Checking path:", self.path2)
 
         assert os.path.exists(self.path2)
         assert os.path.exists(self.path4)
