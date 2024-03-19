@@ -1,13 +1,17 @@
-# modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/train_t2s.py
+# -*- coding: utf-8 -*-
+# coding=utf-8
+from GPT_SoVITS.AR.data.data_module import Text2SemanticDataModule
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.AR.utils.io import load_yaml_config
+from GPT_SoVITS.AR.utils import get_newest_ckpt
+from GPT_SoVITS.s1_train import my_model_ckpt
 import os
-import pdb
 
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 import argparse
 import logging
 from pathlib import Path
-
 import torch, platform
 from pytorch_lightning import seed_everything
 from pytorch_lightning import Trainer
@@ -17,7 +21,6 @@ from pytorch_lightning.strategies import DDPStrategy
 from AR.data.data_module import Text2SemanticDataModule
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from AR.utils.io import load_yaml_config
-
 logging.getLogger("numba").setLevel(logging.WARNING)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 torch.set_float32_matmul_precision("high")
@@ -26,6 +29,11 @@ from AR.utils import get_newest_ckpt
 from collections import OrderedDict
 from time import time as ttime
 import shutil
+import os
+
+# 要设置的新工作目录路径
+new_working_directory = "/home/www/GPT-SoVITS"
+os.chdir(new_working_directory)
 def my_save(fea,path):#####fix issue: torch.save doesn't support chinese path
     dir=os.path.dirname(path)
     name=os.path.basename(path)
@@ -91,69 +99,81 @@ class my_model_ckpt(ModelCheckpoint):
             self._save_last_checkpoint(trainer, monitor_candidates)
 
 
-# def main(args):
-#     config = load_yaml_config(args.config_file)
-#
-#     output_dir = Path(config["output_dir"])
-#     output_dir.mkdir(parents=True, exist_ok=True)
-#
-#     ckpt_dir = output_dir / "ckpt"
-#     ckpt_dir.mkdir(parents=True, exist_ok=True)
-#
-#     seed_everything(config["train"]["seed"], workers=True)
-#     ckpt_callback: ModelCheckpoint = my_model_ckpt(
-#         config=config,
-#         if_save_latest=config["train"]["if_save_latest"],
-#         if_save_every_weights=config["train"]["if_save_every_weights"],
-#         half_weights_save_dir=config["train"]["half_weights_save_dir"],
-#         exp_name=config["train"]["exp_name"],
-#         save_top_k=-1,
-#         monitor="top_3_acc",
-#         mode="max",
-#         save_on_train_epoch_end=True,
-#         every_n_epochs=config["train"]["save_every_n_epoch"],
-#         dirpath=ckpt_dir,
-#     )
-#     logger = TensorBoardLogger(name=output_dir.stem, save_dir=output_dir)
-#     os.environ["MASTER_ADDR"]="localhost"
-#     trainer: Trainer = Trainer(
-#         max_epochs=config["train"]["epochs"],
-#         accelerator="gpu",
-#         # val_check_interval=9999999999999999999999,###不要验证
-#         # check_val_every_n_epoch=None,
-#         limit_val_batches=0,
-#         devices=-1,
-#         benchmark=False,
-#         fast_dev_run=False,
-#         strategy = "auto" if torch.backends.mps.is_available() else DDPStrategy(
-#             process_group_backend="nccl" if platform.system() != "Windows" else "gloo"
-#         ),  # mps 不支持多节点训练
-#         precision=config["train"]["precision"],
-#         logger=logger,
-#         num_sanity_val_steps=0,
-#         callbacks=[ckpt_callback],
-#     )
-#
-#     model: Text2SemanticLightningModule = Text2SemanticLightningModule(
-#         config, output_dir
-#     )
-#
-#     data_module: Text2SemanticDataModule = Text2SemanticDataModule(
-#         config,
-#         train_semantic_path=config["train_semantic_path"],
-#         train_phoneme_path=config["train_phoneme_path"],
-#         # dev_semantic_path=args.dev_semantic_path,
-#         # dev_phoneme_path=args.dev_phoneme_path
-#     )
-#
-#     try:
-#         # 使用正则表达式匹配文件名中的数字部分，并按数字大小进行排序
-#         newest_ckpt_name = get_newest_ckpt(os.listdir(ckpt_dir))
-#         ckpt_path = ckpt_dir / newest_ckpt_name
-#     except Exception:
-#         ckpt_path = None
-#     print("ckpt_path:", ckpt_path)
-#     trainer.fit(model, data_module, ckpt_path=ckpt_path)
-#
-#
+
+# GPT_train
+def main_GPT(project_id):
+    config_file = "./GPT_SoVITS/configs/tmp_s1.yaml"
+    config = load_yaml_config(config_file)
+    config['output_dir'] = f"./work_dir/train/{project_id}/log_s1"
+    config['train_semantic_path'] = f"./work_dir/data_process/{project_id}/6-name2semantic.tsv"
+    config['train_phoneme_path'] = f"./work_dir/data_process/{project_id}/2-name2text.txt"
+    output_dir = Path(f"./work_dir/train/{project_id}/log_s1")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_dir = output_dir / "ckpt"
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    seed_everything(config["train"]["seed"], workers=True)
+    ckpt_callback: ModelCheckpoint = my_model_ckpt(
+        config=config,
+        if_save_latest=config["train"]["if_save_latest"],
+        if_save_every_weights=config["train"]["if_save_every_weights"],
+        half_weights_save_dir=config["train"]["half_weights_save_dir"],
+        exp_name=config["train"]["exp_name"],
+        save_top_k=-1,
+        monitor="top_3_acc",
+        mode="max",
+        save_on_train_epoch_end=True,
+        every_n_epochs=config["train"]["save_every_n_epoch"],
+        dirpath=ckpt_dir,
+    )
+    logger = TensorBoardLogger(name=output_dir.stem, save_dir=output_dir)
+    os.environ["MASTER_ADDR"]="localhost"
+    trainer: Trainer = Trainer(
+        max_epochs=config["train"]["epochs"],
+        accelerator="gpu",
+        # val_check_interval=9999999999999999999999,###不要验证
+        # check_val_every_n_epoch=None,
+        limit_val_batches=0,
+        devices=-1,
+        benchmark=False,
+        fast_dev_run=False,
+        strategy = "auto" if torch.backends.mps.is_available() else DDPStrategy(
+            process_group_backend="nccl" if platform.system() != "Windows" else "gloo"
+        ),  # mps 不支持多节点训练
+        precision=config["train"]["precision"],
+        logger=logger,
+        num_sanity_val_steps=0,
+        callbacks=[ckpt_callback],
+    )
+
+    model: Text2SemanticLightningModule = Text2SemanticLightningModule(
+        config, output_dir
+    )
+
+    data_module: Text2SemanticDataModule = Text2SemanticDataModule(
+        config,
+        train_semantic_path=config["train_semantic_path"],
+        train_phoneme_path=config["train_phoneme_path"],
+        # dev_semantic_path=args.dev_semantic_path,
+        # dev_phoneme_path=args.dev_phoneme_path
+    )
+    try:
+        # 使用正则表达式匹配文件名中的数字部分，并按数字大小进行排序
+        newest_ckpt_name = get_newest_ckpt(os.listdir(ckpt_dir))
+        ckpt_path = ckpt_dir / newest_ckpt_name
+    except Exception:
+        ckpt_path = None
+    print("ckpt_path:", ckpt_path)
+    trainer.fit(model, data_module, ckpt_path=ckpt_path)
+
+
+
+
+if __name__ == "__main__":
+
+    print("Starting train")
+    parser = argparse.ArgumentParser(description='train')
+    parser.add_argument('-pro_id', type=str, required=True, help='项目标识符')
+    print('完成参数提交')
+    args = parser.parse_args()
+    main_GPT(args.pro_id)
 

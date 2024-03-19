@@ -1,5 +1,6 @@
 import argparse
 import logging
+import subprocess
 from typing import List
 from fastapi import UploadFile, File, HTTPException
 from fastapi import FastAPI, BackgroundTasks
@@ -13,7 +14,8 @@ from labou_train_data import *
 # 数据预处理模块
 from data_process import *
 # 训练模块
-from train import main,main_GPT
+from GPT_train import main_GPT
+from SoVITS_train import main
 
 
 app = FastAPI()
@@ -89,14 +91,14 @@ async def data_process(project_id: str):
     return {"detail_2": "sucess"}
 
 def train_two_model(project_id):
-    # main(project_id)
-    main_GPT(project_id)
+    command = f'/home/www/.conda/envs/py39_paddle/bin/python3 /home/www/GPT-SoVITS/api/GPT_train.py -pro_id {project_id}'
+    subprocess.run(command, shell=True, check=True)
 
 
 @app.post("/train/{project_id}")
 async def train(project_id: str,background_tasks: BackgroundTasks):
     background_tasks.add_task(train_two_model, project_id)
-    return {"message": "Training started in the background"}
+    return {"message": "克隆任务已提交"}
 
 
 #
