@@ -1,10 +1,15 @@
 import argparse
+import io
+
 import logging
 import subprocess
 from typing import List
+from predict import *
 from fastapi import UploadFile, File, HTTPException
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, Request
 from pathlib import Path
+from pydub import AudioSegment
+from transformers import GPT2LMHeadModel
 # 导入音频切割模块
 from tools.slice_audio import slice
 # 导入声音降噪模块
@@ -70,8 +75,8 @@ async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
     file_number = process_directory(chinese_dir, character_name, "ZH", 0, parent_dir, project_id)
 
     # 设置重采样目录路径
-    in_dir = f"./work_dir/train_audio/{project_id}"  # 音频文件的当前位置
-    temp_out_dir = f"./work_dir/train_audio/temp"  # 临时存储重采样后的文件
+    in_dir = f"./work_dir/train_audio/{project_id}"
+    temp_out_dir = f"./work_dir/train_audio/temp"
     out_dir = f"./work_dir/train_audio/{project_id}"
 
     # 调用重采样函数
@@ -91,6 +96,7 @@ async def data_process(project_id: str):
     return {"detail_2": "sucess"}
 
 def train_two_model(project_id):
+    main(project_id)
     command = f'/home/www/.conda/envs/py39_paddle/bin/python3 /home/www/GPT-SoVITS/api/GPT_train.py -pro_id {project_id}'
     subprocess.run(command, shell=True, check=True)
 
@@ -100,42 +106,74 @@ async def train(project_id: str,background_tasks: BackgroundTasks):
     background_tasks.add_task(train_two_model, project_id)
     return {"message": "克隆任务已提交"}
 
+@app.get("/check_train/{project_id}")
+async def check_train(project_id: str):
+    GPT_model_dir = f'/home/www/GPT-SoVITS/work_dir/train/{project_id}/log_s1/ckpt/'
+    SoVITS_Model_dir = f'/home/www/GPT-SoVITS/work_dir/train/{project_id}/logs2_weight/'
+
+    gpt_ckpt_exists = any(fname.endswith('.ckpt') for fname in os.listdir(GPT_model_dir) if
+                          os.path.isfile(os.path.join(GPT_model_dir, fname)))
+
+    sovits_pth_exists = any(fname.endswith('.pth') for fname in os.listdir(SoVITS_Model_dir) if
+                            os.path.isfile(os.path.join(SoVITS_Model_dir, fname)))
+
+    if not gpt_ckpt_exists and not sovits_pth_exists:
+        return{"message": "尚未克隆完成，请稍等"}
+
+    model_files = []
+    if gpt_ckpt_exists:
+        model_files.extend([fname for fname in os.listdir(GPT_model_dir) if fname.endswith('.ckpt')])
+    if sovits_pth_exists:
+        model_files.extend([fname for fname in os.listdir(SoVITS_Model_dir) if fname.endswith('.pth')])
+
+    return model_files
+
+
+
+
+
 
 #
 # @app.post("/predict/{project_id}")
-# async def predict(project_id: str,files_text,target_text, file: List[UploadFile] = File(...)):
-#     target_directory = f'./work_dir/predict/{project_id}/reference_audio/'
-#     default_language = "zh"
+# async def predict(project_id: str):
+#     # , file: List[UploadFile] = File(...)
+#     #
+#     # target_directory = f'./work_dir/predict/{project_id}/reference_audio/'
+#     #
+#     # # 判断音频长度，符合要求上传，不符报错
+#     # file_bytes = io.BytesIO(await file.read())
+#     # try:
+#     #     audio = AudioSegment.from_file(file_bytes)
+#     #     audio_length_ms = len(audio)
+#     #     audio_length_seconds = audio_length_ms / 1000
+#     #     if 3 < audio_length_seconds < 10:
+#     #         try:
+#     #             file_location = target_directory / file.filename
+#     #             with file_location.open("wb") as buffer:
+#     #                 shutil.copyfileobj(file.file, buffer)
+#     #
+#     #         except Exception as e:
+#     #             raise HTTPException(status_code=500, detail="错误.请检查文件路径是否正确") from e
+#     #         finally:
+#     #             file.file.close()
+#     #             print(f'文件已经放入指定位置：{target_directory}')
+#     #     else:
+#     #         raise HTTPException(status_code=400, detail="音频长度错误：上传音频长度应为3S-10S")
+#     #
+#     # except Exception as e:
+#     #     raise HTTPException(status_code=400, detail="无法解析音频文件，请确定格式为MP3或wav")
+#
+#
 #     text_language = "zh"
-#     # 判断音频长度，符合要求上传，不符报错
-#     file_bytes = io.BytesIO(await file.read())
-#     try:
-#         audio = AudioSegment.from_file(file_bytes)
-#         audio_length_ms = len(audio)
-#         audio_length_seconds = audio_length_ms / 1000
-#         if 3 < audio_length_seconds < 10:
-#             try:
-#                 file_location = target_directory / file.filename
-#                 with file_location.open("wb") as buffer:
-#                     shutil.copyfileobj(file.file, buffer)
+#     refer_wav_path = "/home/www/GPT-SoVITS/work_dir/hxj_0.wav"
+#     prompt_text = '各位老师好，我是来自北京大学人民医院的临床医院大夫'
+#     prompt_language = 'zh'
+#     target_text = '大家好哦，我是练习时长两年半的工程师王晓楠,喜欢唱，跳 ，篮球'
 #
-#             except Exception as e:
-#                 raise HTTPException(status_code=500, detail="错误.请检查文件路径是否正确") from e
-#             finally:
-#                 file.file.close()
-#                 print(f'文件已经放入指定位置：{target_directory}')
+#     # GPT_PATH = f'/home/www/GPT-SoVITS/work_dir/train/{project_id}/log_s1/ckpt/{GPT_name}'
+#     # SoVOTS_PATH = f'/home/www/GPT-SoVITS/work_dir/train/{project_id}/logs2_weight/{SoVOTS_name}'
 #
-#         else:
-#             raise HTTPException(status_code=400, detail="音频长度错误：上传音频长度应为3S-10S")
-#
-#
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail="无法解析音频文件，请确定格式为MP3或wav")
-#
-#
-#     handle(file_location, files_text, default_language, target_text, text_language)
-#
-#
+#     handle(refer_wav_path, prompt_text, prompt_language, target_text, text_language)
 #
 
 
