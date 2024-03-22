@@ -25,6 +25,7 @@ logging.getLogger("numba").setLevel(logging.WARNING)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 torch.set_float32_matmul_precision("high")
 from AR.utils import get_newest_ckpt
+import yaml
 
 from collections import OrderedDict
 from time import time as ttime
@@ -99,16 +100,31 @@ class my_model_ckpt(ModelCheckpoint):
             self._save_last_checkpoint(trainer, monitor_candidates)
 
 
+def save_yaml_config(config, output_dir, filename="GPT-config.yaml"):
+    # 如果输出目录不存在，就创建它
+    os.makedirs(output_dir, exist_ok=True)
+    output_file_path = os.path.join(output_dir, filename)
+    with open(output_file_path, 'w', encoding='utf-8') as file:
+        yaml.dump(config, file)
+
+
 
 # GPT_train
 def main_GPT(project_id):
     config_file = "./GPT_SoVITS/configs/tmp_s1.yaml"
     config = load_yaml_config(config_file)
     config['output_dir'] = f"./work_dir/train/{project_id}/log_s1"
+    config['train']['exp_name'] = f'{project_id}'
     config['train_semantic_path'] = f"./work_dir/data_process/{project_id}/6-name2semantic.tsv"
     config['train_phoneme_path'] = f"./work_dir/data_process/{project_id}/2-name2text.txt"
+    config["train"]["half_weights_save_dir"] = f"./work_dir/train/{project_id}/logs1_weight"
+    config["train"]["exp_name"] = f"{project_id}"
     output_dir = Path(f"./work_dir/train/{project_id}/log_s1")
+    output_weight_dir = Path(f"./work_dir/train/{project_id}/logs1_weight")
     output_dir.mkdir(parents=True, exist_ok=True)
+    output_weight_dir.mkdir(parents=True, exist_ok=True)
+    save_yaml_config(config, config['output_dir'])
+
     ckpt_dir = output_dir / "ckpt"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     seed_everything(config["train"]["seed"], workers=True)

@@ -27,39 +27,56 @@ import config as global_config
 
 g_config = global_config.Config()
 
-# AVAILABLE_COMPUTE = "cuda" if torch.cuda.is_available() else "cpu"
+import argparse
 
-parser = argparse.ArgumentParser(description="GPT-SoVITS api")
+# 假设 g_config 是一个全局配置对象，包含默认配置
+g_config = {
+    'sovits_path': "/home/www/GPT-SoVITS/work_dir/train/hxj/logs2_weight/hxj_e70_s350.pth",
+    'gpt_path': "/home/www/GPT-SoVITS/work_dir/train/hxj/logs1_weight/hxj-e10.ckpt",
+    'infer_device': 'GPU',
+    'cnhubert_path': "/home/www/GPT-SoVITS/GPT_SoVITS/pretrained_models/chinese-hubert-base/",
+    'bert_path': "/home/www/GPT-SoVITS/GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/",
+    'is_half' :'False'
+}
 
-parser.add_argument("-s", "--sovits_path", type=str, default=g_config.sovits_path, help="SoVITS模型路径")
-parser.add_argument("-g", "--gpt_path", type=str, default=g_config.gpt_path, help="GPT模型路径")
+# 设置参数
+args = argparse.Namespace(
+    sovits_path=g_config['sovits_path'],
+    gpt_path=g_config['gpt_path'],
+    device=g_config['infer_device'],
+    bind_addr='127.0.0.1',
+    port=7860,
+    full_precision=False,
+    half_precision=False,
+    hubert_path=g_config['cnhubert_path'],
+    default_refer_path = '',
+    default_refer_text = '',
+    default_refer_language = '',
+    bert_path=g_config['bert_path']
+)
 
-parser.add_argument("-dr", "--default_refer_path", type=str, default="", help="默认参考音频路径")
-parser.add_argument("-dt", "--default_refer_text", type=str, default="", help="默认参考音频文本")
-parser.add_argument("-dl", "--default_refer_language", type=str, default="", help="默认参考音频语种")
+# 如果你需要更改某些参数，直接在这里指定
+args.device = 'cuda'
+args.port = 7860
+args.full_precision = True  # 设置为使用全精度
 
-parser.add_argument("-d", "--device", type=str, default=g_config.infer_device, help="cuda / cpu")
-parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 0.0.0.0")
-parser.add_argument("-p", "--port", type=int, default=7860, help="default: 7860")
-parser.add_argument("-fp", "--full_precision", action="store_true", default=False, help="覆盖config.is_half为False, 使用全精度")
-parser.add_argument("-hp", "--half_precision", action="store_true", default=False, help="覆盖config.is_half为True, 使用半精度")
-# bool值的用法为 `python ./api.py -fp ...`
-# 此时 full_precision==True, half_precision==False
-
-parser.add_argument("-hb", "--hubert_path", type=str, default=g_config.cnhubert_path, help="覆盖config.cnhubert_path")
-parser.add_argument("-b", "--bert_path", type=str, default=g_config.bert_path, help="覆盖config.bert_path")
-
-args = parser.parse_args()
-
+# 现在 args 包含了所有参数，可以像从命令行解析得到的一样使用它
+# 例如:
+print(args.device)
+print(args.port)
+#
 sovits_path = args.sovits_path
 gpt_path = args.gpt_path
 
 
+# sovits_path = "/home/www/GPT-SoVITS/work_dir/train/hxj/logs2_weight/hxj_e70_s280.pth"
+# gpt_path = "/home/www/GPT-SoVITS/work_dir/train/hxj/log_s1/ckpt/epoch=14-step=30.ckpt"
+
 class DefaultRefer:
     def __init__(self, path, text, language):
-        self.path = args.default_refer_path
-        self.text = args.default_refer_text
-        self.language = args.default_refer_language
+        self.path = ''
+        self.text = ''
+        self.language = ''
 
     def is_ready(self) -> bool:
         return is_full(self.path, self.text, self.language)
@@ -187,8 +204,11 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
     phones1, word2ph1, norm_text1 = clean_text(prompt_text, prompt_language)
+    print(f'phones1, word2ph1, norm_text1:{phones1, word2ph1, norm_text1}')
     phones1 = cleaned_text_to_sequence(phones1)
+    print(f'phones1:{phones1}')
     texts = text.split("\n")
+    print(f'texts:{texts}')
     audio_opt = []
 
     for text in texts:
@@ -329,13 +349,13 @@ else:
     print(f"[INFO] 默认参考音频文本: {default_refer.text}")
     print(f"[INFO] 默认参考音频语种: {default_refer.language}")
 
-is_half = g_config.is_half
+is_half = g_config['is_half']
 if args.full_precision:
     is_half = False
 if args.half_precision:
     is_half = True
 if args.full_precision and args.half_precision:
-    is_half = g_config.is_half  # 炒饭fallback
+    is_half = g_config['is_half']  # 炒饭fallback
 
 print(f"[INFO] 半精: {is_half}")
 
@@ -354,13 +374,14 @@ else:
 n_semantic = 1024
 dict_s2 = torch.load(sovits_path, map_location="cpu")
 hps = dict_s2["config"]
-
-
+print(hps)
 
 hps = DictToAttrRecursive(hps)
 hps.model.semantic_frame_rate = "25hz"
 dict_s1 = torch.load(gpt_path, map_location="cpu")
 config = dict_s1["config"]
+
+#
 ssl_model = cnhubert.get_model()
 if is_half:
     ssl_model = ssl_model.half().to(device)
@@ -390,7 +411,7 @@ total = sum([param.nelement() for param in t2s_model.parameters()])
 print("Number of parameter: %.2fM" % (total / 1e6))
 
 
-
+#
 
 
 app = FastAPI()
