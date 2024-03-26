@@ -29,6 +29,7 @@ def create_directory(directory):
 
 @app.post("/upload-audio/{project_id}")
 async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
+
     base_path = "/home/www/GPT-SoVITS/work_dir"
     directories = ["audio_data", "denoise", "temp", "slice_audio_data"]
     for dir_name in directories:
@@ -66,6 +67,7 @@ async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
     print(f'已完成切分，请检查：{opt_root}')
     # 降噪
     output_info = uvr(opt_root, save_root_vocal, save_root_ins)
+    print(f'降噪完成，结果如下：')
     for info in output_info:
         print(info)
     # 打标签+重采样
