@@ -4,7 +4,6 @@ import aiofiles
 import logging
 import subprocess
 from typing import List
-from predict import handle
 from fastapi import UploadFile, File, HTTPException
 from fastapi import FastAPI, BackgroundTasks, Request
 from pathlib import Path
@@ -28,7 +27,7 @@ def create_directory(directory):
     directory.mkdir(parents=True, exist_ok=True)
 
 @app.post("/upload-audio/{project_id}")
-async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
+async def upload_audio(background_tasks: BackgroundTasks, project_id: str, files: List[UploadFile] = File(...)):
 
     base_path = "/home/www/GPT-SoVITS/work_dir"
     directories = ["audio_data", "denoise", "temp", "slice_audio_data"]
@@ -36,21 +35,28 @@ async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
         create_directory(Path(f"{base_path}/{dir_name}/{project_id}"))
 
     target_directory = Path(f"{base_path}/audio_data/{project_id}")
-    save_root_vocal = Path(f"{base_path}/denoise/{project_id}")
-    save_root_ins = Path(f"{base_path}/temp/{project_id}")
-    opt_root = Path(f"{base_path}/slice_audio_data/{project_id}")
 
     for file in files:
         try:
             file_location = target_directory / file.filename
             with file_location.open("wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
-
         except Exception as e:
             raise HTTPException(status_code=500, detail="错误.请检查文件路径是否正确") from e
         finally:
             file.file.close()
-            print(f'文件已经放入指定位置：{target_directory}')
+
+    # 添加后台任务
+    background_tasks.add_task(process_audio_files, target_directory, project_id, base_path)
+
+    # 返回立即响应
+    return {"detail": "文件上传成功，正在处理。。。"}
+
+# 定义后台任务函数
+def process_audio_files(target_directory, project_id, base_path):
+    opt_root = Path(f"{base_path}/slice_audio_data/{project_id}")
+    save_root_vocal = Path(f"{base_path}/denoise/{project_id}")
+    save_root_ins = Path(f"{base_path}/temp/{project_id}")
 
     # 对音频进行切分
     inp = target_directory
@@ -84,8 +90,67 @@ async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
     # 调用重采样函数
     resample_audio(in_dir, temp_out_dir, out_dir)
     print('数据预处理（打标签与重采样）已经完成')
-    # 所有文件处理完毕，返回成功信息
-    return {"detail_1": "sucess"}
+
+# @app.post("/upload-audio/{project_id}")
+# async def upload_audio(project_id: str, files: List[UploadFile] = File(...)):
+#
+#     base_path = "/home/www/GPT-SoVITS/work_dir"
+#     directories = ["audio_data", "denoise", "temp", "slice_audio_data"]
+#     for dir_name in directories:
+#         create_directory(Path(f"{base_path}/{dir_name}/{project_id}"))
+#
+#     target_directory = Path(f"{base_path}/audio_data/{project_id}")
+#     save_root_vocal = Path(f"{base_path}/denoise/{project_id}")
+#     save_root_ins = Path(f"{base_path}/temp/{project_id}")
+#     opt_root = Path(f"{base_path}/slice_audio_data/{project_id}")
+#
+#     for file in files:
+#         try:
+#             file_location = target_directory / file.filename
+#             with file_location.open("wb") as buffer:
+#                 shutil.copyfileobj(file.file, buffer)
+#
+#         except Exception as e:
+#             raise HTTPException(status_code=500, detail="错误.请检查文件路径是否正确") from e
+#         finally:
+#             file.file.close()
+#             print(f'文件已经放入指定位置：{target_directory}')
+#
+#
+#     # 对音频进行切分
+#     inp = target_directory
+#     threshold = -34 # 音量小于这个值视作静音的备选切割点
+#     min_length = 4000  # 每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值
+#     min_interval = 300  # 最短切割间隔
+#     hop_size = 10  # 怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）
+#     max_sil_kept = 500  # 切完后静音最多留多长
+#     _max = 0.9 # 归一化后最大值多少
+#     alpha = 0.25
+#     i_part = 0
+#     all_part = 1
+#     slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,i_part,all_part)
+#     print(f'已完成切分，请检查：{opt_root}')
+#     # 降噪
+#     output_info = uvr(opt_root, save_root_vocal, save_root_ins)
+#     print(f'降噪完成，结果如下：')
+#     for info in output_info:
+#         print(info)
+#     # 打标签+重采样
+#     character_name = project_id
+#     chinese_dir = save_root_vocal
+#     parent_dir = f"./work_dir/train_audio/{project_id}"
+#     file_number = process_directory(chinese_dir, character_name, "ZH", 0, parent_dir, project_id)
+#
+#     # 设置重采样目录路径
+#     in_dir = f"./work_dir/train_audio/{project_id}"
+#     temp_out_dir = f"./work_dir/train_audio/temp"
+#     out_dir = f"./work_dir/train_audio/{project_id}"
+#
+#     # 调用重采样函数
+#     resample_audio(in_dir, temp_out_dir, out_dir)
+#     print('数据预处理（打标签与重采样）已经完成')
+#     # 所有文件处理完毕，返回成功信息
+#     return {"detail_1": "sucess"}
 
 @app.post("/data_process/{project_id}")
 async def data_process(project_id: str):
@@ -131,53 +196,6 @@ async def check_train(project_id: str):
 
     return model_files
 
-
-
-
-
-@app.get("/predict/{project_id}")
-async def tts_endpoint(
-        project_id: str = None,
-        sovits_name :str = None,
-        gpt_name :str = None,
-        refer_wav_path: str = None,
-        prompt_text: str = None,
-        prompt_language: str = None,
-        text: str = None,
-        text_language: str = None,
-):
-
-
-
-
-    return handle(refer_wav_path, prompt_text, prompt_language, text, text_language)
-#
-@app.post("/predict/{project_id}")
-async def predict(project_id: str,
-                  wav_path: UploadFile= File(...),
-                  prompt_text: str = None,
-                  prompt_language: str = None,
-                  target_text: str = None,
-                  text_language: str = None,
-                  ):
-    save_path = Path(f"./work_dir/train/reference_audio/{wav_path.filename}")
-
-    # 确保文件夹存在
-    save_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # # 将上传的文件内容写入到服务器上
-    # async with aiofiles.open(save_path, 'wb') as out_file:
-    #     content = await wav_path.read()  # 读取上传的文件内容
-    #     await out_file.write(content)  # 写入到服务器上的文件中
-    #
-    # # 使用保存到服务器上的文件路径
-    refer_wav_path = str(save_path)
-
-
-    handle(refer_wav_path, prompt_text, prompt_language, target_text, text_language)
-#
-    # GPT_PATH = f'/home/www/GPT-SoVITS/work_dir/train/{project_id}/logs1_weight/{GPT_name}'
-    # SoVOTS_PATH = f'/home/www/GPT-SoVITS/work_dir/train/{project_id}/logs2_weight/{SoVOTS_name}'
 
 if __name__ == "__main__":
     import uvicorn

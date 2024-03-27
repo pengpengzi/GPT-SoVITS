@@ -60,11 +60,6 @@ args.device = 'cuda'
 args.port = 7860
 args.full_precision = True  # 设置为使用全精度
 
-# 现在 args 包含了所有参数，可以像从命令行解析得到的一样使用它
-# 例如:
-print(args.device)
-print(args.port)
-#
 sovits_path = args.sovits_path
 gpt_path = args.gpt_path
 
@@ -415,63 +410,6 @@ print("Number of parameter: %.2fM" % (total / 1e6))
 
 
 app = FastAPI()
-
-#clark新增-----2024-02-21
-#可在启动后动态修改模型，以此满足同一个api不同的朗读者请求
-# @app.post("/set_model")
-# async def set_model(request: Request):
-#
-#     global gpt_path
-#     gpt_path='GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt'
-#     global sovits_path
-#     sovits_path='GPT_SoVITS/pretrained_models/s2G488k.pth'
-#     print("gptpath"+gpt_path+";vitspath"+sovits_path)
-#     change_sovits_weights(sovits_path)
-#     change_gpt_weights(gpt_path)
-#     return "ok"
-# # 新增-----end------
-#
-# @app.post("/control")
-# async def control(request: Request):
-#     json_post_raw = await request.json()
-#     return handle_control(json_post_raw.get("command"))
-#
-#
-# @app.get("/control")
-# async def control(command: str = None):
-#     return handle_control(command)
-#
-#
-# @app.post("/change_refer")
-# async def change_refer(request: Request):
-#     json_post_raw = await request.json()
-#     return handle_change(
-#         json_post_raw.get("refer_wav_path"),
-#         json_post_raw.get("prompt_text"),
-#         json_post_raw.get("prompt_language")
-#     )
-#
-#
-# @app.get("/change_refer")
-# async def change_refer(
-#         refer_wav_path: str = None,
-#         prompt_text: str = None,
-#         prompt_language: str = None
-# ):
-#     return handle_change(refer_wav_path, prompt_text, prompt_language)
-#
-#
-# @app.post("/")
-# async def tts_endpoint(request: Request):
-#     json_post_raw = await request.json()
-#     return handle(
-#         json_post_raw.get("refer_wav_path"),
-#         json_post_raw.get("prompt_text"),
-#         json_post_raw.get("prompt_language"),
-#         json_post_raw.get("text"),
-#         json_post_raw.get("text_language"),
-#     )
-
 @app.get("/")
 async def tts_endpoint(
         refer_wav_path: str = None,
